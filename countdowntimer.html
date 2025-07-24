@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Countdown Timer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+            z-index: -1;
+        }
+        
+        .timer-segment {
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s ease-in-out;
+        }
+        .timer-segment:hover {
+            transform: translateY(-5px);
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-4xl mx-auto">
+        <div class="text-center mb-8">
+            <h1 class="text-4xl md:text-6xl font-bold tracking-tight">Countdown Timer</h1>
+            <p class="text-gray-400 mt-2 text-lg">Set a date and time to start the countdown.</p>
+        </div>
+
+        
+        <div id="input-section" class="bg-gray-800 p-6 rounded-xl shadow-lg mb-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <div class="flex flex-col w-full sm:w-auto">
+                <label for="date-input" class="text-sm font-medium text-gray-300 mb-1">Date</label>
+                <input type="date" id="date-input" class="bg-gray-700 border border-gray-600 text-white rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+            <div class="flex flex-col w-full sm:w-auto">
+                 <label for="time-input" class="text-sm font-medium text-gray-300 mb-1">Time</label>
+                <input type="time" id="time-input" class="bg-gray-700 border border-gray-600 text-white rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+            <button id="start-btn" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 self-end">Start</button>
+        </div>
+
+        
+        <div id="timer-display" class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 text-white">
+            <div class="timer-segment">
+                <div id="days" class="text-5xl md:text-7xl font-bold">00</div>
+                <div class="text-sm md:text-lg text-gray-400">Days</div>
+            </div>
+            <div class="timer-segment">
+                <div id="hours" class="text-5xl md:text-7xl font-bold">00</div>
+                <div class="text-sm md:text-lg text-gray-400">Hours</div>
+            </div>
+            <div class="timer-segment">
+                <div id="minutes" class="text-5xl md:text-7xl font-bold">00</div>
+                <div class="text-sm md:text-lg text-gray-400">Minutes</div>
+            </div>
+            <div class="timer-segment">
+                <div id="seconds" class="text-5xl md:text-7xl font-bold">00</div>
+                <div class="text-sm md:text-lg text-gray-400">Seconds</div>
+            </div>
+        </div>
+        
+        
+        <div id="message-box" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <div class="bg-white text-gray-800 p-8 rounded-lg shadow-xl text-center">
+                <h2 id="message-title" class="text-2xl font-bold mb-4"></h2>
+                <p id="message-text"></p>
+                <button id="message-close-btn" class="mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg">Close</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        
+        const dateInput = document.getElementById('date-input');
+        const timeInput = document.getElementById('time-input');
+        const startBtn = document.getElementById('start-btn');
+
+        const daysEl = document.getElementById('days');
+        const hoursEl = document.getElementById('hours');
+        const minutesEl = document.getElementById('minutes');
+        const secondsEl = document.getElementById('seconds');
+        
+        const messageBox = document.getElementById('message-box');
+        const messageTitle = document.getElementById('message-title');
+        const messageText = document.getElementById('message-text');
+        const messageCloseBtn = document.getElementById('message-close-btn');
+
+        let countdownInterval;
+
+        
+
+        
+         
+        
+        function setDefaultDateTime() {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const defaultDate = tomorrow.toISOString().split('T')[0];
+            const defaultTime = "12:00";
+            
+            dateInput.value = defaultDate;
+            timeInput.value = defaultTime;
+        }
+
+        
+        
+        function startCountdown() {
+            const targetDateValue = dateInput.value;
+            const targetTimeValue = timeInput.value;
+
+            if (!targetDateValue || !targetTimeValue) {
+                showMessage('Input Required', 'Please select both a date and a time.');
+                return;
+            }
+
+            const targetDateTime = new Date(`${targetDateValue}T${targetTimeValue}`).getTime();
+
+            if (isNaN(targetDateTime)) {
+                showMessage('Invalid Date/Time', 'The selected date or time is not valid.');
+                return;
+            }
+
+            
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+            }
+
+            
+            updateTimer(targetDateTime);
+            countdownInterval = setInterval(() => updateTimer(targetDateTime), 1000);
+        }
+
+        function updateTimer(targetDateTime) {
+            const now = new Date().getTime();
+            const distance = targetDateTime - now;
+
+            if (distance < 0) {
+                clearInterval(countdownInterval);
+                daysEl.textContent = '00';
+                hoursEl.textContent = '00';
+                minutesEl.textContent = '00';
+                secondsEl.textContent = '00';
+                showMessage('Countdown Finished!', 'The countdown has reached its end.');
+                return;
+            }
+
+            
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            
+            daysEl.textContent = String(days).padStart(2, '0');
+            hoursEl.textContent = String(hours).padStart(2, '0');
+            minutesEl.textContent = String(minutes).padStart(2, '0');
+            secondsEl.textContent = String(seconds).padStart(2, '0');
+        }
+        
+        
+        function showMessage(title, text) {
+            messageTitle.textContent = title;
+            messageText.textContent = text;
+            messageBox.classList.remove('hidden');
+        }
+
+        
+        function hideMessage() {
+            messageBox.classList.add('hidden');
+        }
+
+
+        
+        startBtn.addEventListener('click', startCountdown);
+        messageCloseBtn.addEventListener('click', hideMessage);
+
+        
+        window.onload = setDefaultDateTime;
+
+    </script>
+</body>
+</html>
